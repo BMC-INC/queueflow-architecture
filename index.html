@@ -91,6 +91,12 @@
     .header{flex-direction:column}
     .header-brand{text-align:left}
   }
+  .stage-card:focus-visible{outline:2px solid var(--cyan);outline-offset:4px}
+  @media(prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none!important;transition:none!important}
+    .stage-card,.header,.summary-strip,.footer{opacity:1!important;transform:none!important}
+    .scanline{display:none!important}
+  }
 </style>
 </head>
 <body>
@@ -100,7 +106,7 @@
     <div>
       <div class="header-label">Architecture Overview</div>
       <h1>QueueFlow Webhook Pipeline</h1>
-      <p class="header-sub">Smart Events, Paid Subscriptions</p>
+      <p class="header-sub">From device events to governed actions. Interactive architecture overview; no live device connection.</p>
     </div>
     <div class="header-brand">
       <div class="company">ExecLayer Inc.</div>
@@ -164,6 +170,11 @@ stages.forEach((s, i) => {
   const card = document.createElement("div");
   card.className = "stage-card";
   card.id = "card-" + i;
+  card.tabIndex = 0;
+  card.setAttribute("role", "button");
+  card.setAttribute("aria-label", s.title + ": show details");
+  card.setAttribute("aria-expanded", "false");
+  card.setAttribute("aria-controls", "detail-" + i);
   card.style.setProperty("--glow-color", s.glow);
   card.innerHTML =
     '<div class="accent-bar" style="background:linear-gradient(90deg,' + s.accentHex + ',' + s.accentHex + '88)"></div>' +
@@ -176,9 +187,15 @@ stages.forEach((s, i) => {
         return '<div class="stage-item"><div class="dot" style="background:' + s.accentHex + '"></div><span>' + item + '</span></div>';
       }).join("") + '</div>' +
     '</div>' +
-    '<div class="detail-panel" id="detail-' + i + '"><p>' + s.detail + '</p></div>' +
+    '<div class="detail-panel" id="detail-' + i + '" aria-hidden="true"><p>' + s.detail + '</p></div>' +
     '<div class="click-hint" id="hint-' + i + '">CLICK FOR DETAIL</div>';
   card.addEventListener("click", function() { toggleStage(i, s); });
+  card.addEventListener("keydown", function(event) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      toggleStage(i, s);
+    }
+  });
   wrapper.appendChild(card);
   var num = document.createElement("div");
   num.className = "stage-number";
@@ -192,6 +209,9 @@ stages.forEach((s, i) => {
 function toggleStage(i, s) {
   var wasActive = activeStage === i;
   if (activeStage !== null) {
+    document.getElementById("card-" + activeStage).setAttribute("aria-expanded", "false");
+    document.getElementById("card-" + activeStage).setAttribute("aria-label", stages[activeStage].title + ": show details");
+    document.getElementById("detail-" + activeStage).setAttribute("aria-hidden", "true");
     document.getElementById("card-" + activeStage).classList.remove("active");
     document.getElementById("card-" + activeStage).style.background = "";
     document.getElementById("card-" + activeStage).style.borderColor = "rgba(255,255,255,0.06)";
@@ -202,10 +222,13 @@ function toggleStage(i, s) {
   }
   if (wasActive) { activeStage = null; return; }
   var card = document.getElementById("card-" + i);
+  card.setAttribute("aria-expanded", "true");
+  card.setAttribute("aria-label", s.title + ": hide details");
   card.classList.add("active");
   card.style.background = "linear-gradient(165deg," + s.glow + " 0%,#1e293b 40%)";
   card.style.borderColor = s.accentHex + "60";
   var detail = document.getElementById("detail-" + i);
+  detail.setAttribute("aria-hidden", "false");
   detail.classList.add("open");
   detail.style.borderTopColor = s.accentHex + "20";
   detail.style.background = s.accentHex + "08";
